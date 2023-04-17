@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="OBJECTS" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 100">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        font-family: MontserratAlternates-Regular, 'Montserrat Alternates';
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        fill: #3cb371;
+      }
+
+      .cls-4, .cls-5, .cls-6 {
+        fill: #2b2f60;
+      }
+
+      .cls-5 {
+        letter-spacing: -.02em;
+      }
+
+      .cls-5, .cls-6 {
+        font-family: MontserratAlternates-Bold, 'Montserrat Alternates';
+        font-weight: 700;
+      }
+
+      .cls-2 {
+        letter-spacing: -.02em;
+      }
+
+      .cls-7 {
+        font-size: 81px;
+      }
+    </style>
+  </defs>
+  <text class="cls-7" transform="translate(32.22 76.61)"><tspan class="cls-5" x="0" y="0">C</tspan><tspan class="cls-6" x="57.83" y="0">ampus</tspan><tspan class="cls-2" x="353.24" y="0">C</tspan><tspan class="cls-1" x="409.61" y="0">ast</tspan></text>
+  <path class="cls-4" d="M42.29,60.68l-6.91,17.67c-1.11,2.84,1.86,5.56,4.59,4.2l19.38-9.64-17.06-12.23Z"/>
+  <rect class="cls-3" x="438.47" y="11.64" width="15.39" height="3.88" rx="1.94" ry="1.94" transform="translate(144.35 342.45) rotate(-49.2)"/>
+  <rect class="cls-3" x="423.93" y="7.52" width="15.39" height="3.88" rx="1.94" ry="1.94" transform="translate(491.29 437.05) rotate(-99.2)"/>
+  <rect class="cls-3" x="444.66" y="25.41" width="15.39" height="3.88" rx="1.94" ry="1.94" transform="translate(.43 -6.32) rotate(.8)"/>
+</svg>
