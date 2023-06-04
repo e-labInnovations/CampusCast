@@ -29,7 +29,7 @@ void saveConfigCallback () {
 
 void setupSpiffs() {
   // Uncomment if we need to format filesystem
-//   SPIFFS.format();
+  SPIFFS.format();
 
   Serial.println("mounting FS...");
 
