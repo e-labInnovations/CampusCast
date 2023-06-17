@@ -37,6 +37,7 @@ void setup() {
     Serial.println("connected...yeey :)");
   }
 
+
   // server address, port and URL
   webSocket.begin("192.168.29.69", 1880, "/");
   // event handler
@@ -47,10 +48,11 @@ void setup() {
   // ping server every 15000 ms
   // expect pong from server within 3000 ms
   // consider connection disconnected if pong is not received 2 times
-  webSocket.enableHeartbeat(15000, 3000, 2);
+  // webSocket.enableHeartbeat(15000, 3000, 2);
 
   // audio.connecttohost("http://vis.media-ice.musicradio.com/CapitalMP3");
   // audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
+  // playAudio = true;
 }
 
 void loop() {
@@ -59,12 +61,14 @@ void loop() {
 
   if (playAudio) {
     // audio.connecttohost(audioURL);
-    webSocket.disconnect();
-    audio.connecttohost("https://github.com/schreibfaul1/ESP32-audioI2S/raw/master/additional_info/Testfiles/Olsen-Banden.mp3");
+    // webSocket.disconnect();
+    // audio.connecttohost("https://github.com/schreibfaul1/ESP32-audioI2S/raw/master/additional_info/Testfiles/Olsen-Banden.mp3");
+    audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
     // audio.connecttospeech("New announcement received", "en");
     playAudio = false;
   }
 }
+
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
   switch (type) {
@@ -76,24 +80,13 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
 
       // send message to server when Connected
       webSocket.sendTXT("{ \"command\":\"connected\", \"classroom_code\": \"236\" }");
-      audio.connecttospeech("Connected CampusCast server", "en");
+      // audio.connecttospeech("Connected CampusCast server", "en");
+      playAudio = true;
       break;
     case WStype_TEXT:
       Serial.printf("[WSc] get text: %s\n", payload);
 
       playAudio = true;
-      break;
-    case WStype_BIN:
-      Serial.printf("[WSc] get binary length: %u\n", length);
-
-      // send data to server
-      // webSocket.sendBIN(payload, length);
-      break;
-    case WStype_ERROR:
-    case WStype_FRAGMENT_TEXT_START:
-    case WStype_FRAGMENT_BIN_START:
-    case WStype_FRAGMENT:
-    case WStype_FRAGMENT_FIN:
       break;
   }
 }
