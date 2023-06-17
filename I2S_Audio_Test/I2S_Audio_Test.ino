@@ -2,9 +2,9 @@
 #include "Audio.h"
 #include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
 
-#define I2S_DOUT 12//25
-#define I2S_BCLK 13//27
-#define I2S_LRC 15//26
+#define I2S_DOUT 27
+#define I2S_BCLK 26
+#define I2S_LRC 25
 
 // const char* ssid = "e-labinnovations";
 // const char* password = "PASSWORD";
@@ -31,8 +31,8 @@ void setup() {
 
   audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
   audio.setVolume(21);
-  audio.connecttohost("http://vis.media-ice.musicradio.com/CapitalMP3");
-  // audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
+  // audio.connecttohost("http://vis.media-ice.musicradio.com/CapitalMP3");
+  audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
 }
 
 void loop() {
