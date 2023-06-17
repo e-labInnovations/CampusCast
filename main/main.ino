@@ -14,6 +14,7 @@
 #define I2S_BCLK 26
 #define I2S_LRC 25
 #define BTN_CONFIG_RESET 0
+#define BTN_ACK 34
 
 Audio audio;
 WiFiManager wm;
@@ -25,8 +26,10 @@ char ws_server_val[21] = "192.168.x.x";
 int ws_server_port_val = 1880;
 char ws_server_path_val[41] = "/";
 
-String audioURL = "";
 bool playAudio = false;
+String audioURL = "";
+String anncmntId = "";
+bool prevAckStatus = true;
 
 void setup() {
   Serial.begin(115200);
@@ -36,6 +39,7 @@ void setup() {
   audio.setVolume(21);
 
   pinMode(BTN_CONFIG_RESET, INPUT);
+  pinMode(BTN_ACK, INPUT);
 
   bool forceConfig = false;  // Change to true when testing to force configuration every time we run
 
@@ -70,9 +74,6 @@ void setup() {
   Serial.println(classroom_code_val);
 
   // audio.connecttospeech("WiFi Connected", "en");
-
-  // audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
-  // audio.connecttohost("http://vis.media-ice.musicradio.com/CapitalMP3");
 }
 
 void loop() {
@@ -82,10 +83,10 @@ void loop() {
   if (playAudio) {
     Serial.print("audioUrl: ");
     Serial.println(audioURL);
+    Serial.print("Id: ");
+    Serial.println(anncmntId);
     webSocket.disconnect();
     audio.connecttohost(audioURL.c_str());
-    // audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
-    // audio.connecttospeech("New announcement received", "en");
     playAudio = false;
   }
 
@@ -94,6 +95,18 @@ void loop() {
     // wm.resetSettings();  // reset settings - wipe stored credentials for testing
     // ESP.restart();       // restart eps32
   }
+
+  bool presAckStatus = digitalRead(BTN_ACK);
+  if (prevAckStatus && !presAckStatus) {
+    Serial.println("BTN_ACK pressed");
+
+    if(anncmntId != "") {
+      webSocket.sendTXT("{ \"command\":\"ack\", \"classroom_code\": \"" + String(classroom_code_val) + "\", \"msg_id\":\""+ anncmntId  +"\" }");
+      anncmntId = "";
+    }
+    delay(10);
+  }
+  prevAckStatus = presAckStatus;
 }
 
 void handleIncomingData(uint8_t *json) {
@@ -110,8 +123,10 @@ void handleIncomingData(uint8_t *json) {
   Serial.println(command);
 
   if (command == "anncmnt") {
-    const char* _audioURL = recvData["audioUrl"];
+    const char *_audioURL = recvData["audioUrl"];
+    const char *_anncmntId = recvData["id"];
     audioURL = String(_audioURL);
+    anncmntId = String(_anncmntId);
     playAudio = true;
   }
 }
@@ -126,7 +141,6 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
 
       // send message to server when Connected
       webSocket.sendTXT("{ \"command\":\"connected\", \"classroom_code\": \"" + String(classroom_code_val) + "\" }");
-      // audio.connecttospeech("Connected CampusCast server", "en");
       break;
     case WStype_TEXT:
       Serial.printf("[WSc] get text: %s\n", payload);
