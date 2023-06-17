@@ -10,9 +10,10 @@
 #define PASSWORD "password"
 #define JSON_CONFIG_FILE "/config.json"
 
-#define I2S_DOUT 15  //25
-#define I2S_BCLK 13  //27
-#define I2S_LRC 12   //26
+#define I2S_DOUT 27
+#define I2S_BCLK 26
+#define I2S_LRC 25
+#define BTN_CONFIG_RESET 0
 
 Audio audio;
 WiFiManager wm;
@@ -24,12 +25,17 @@ char ws_server_val[21] = "192.168.x.x";
 int ws_server_port_val = 1880;
 char ws_server_path_val[41] = "/";
 
+char* audioURL;
+bool playAudio = false;
+
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
 
   audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
   audio.setVolume(21);
+
+  pinMode(BTN_CONFIG_RESET, INPUT);
 
   bool forceConfig = false;  // Change to true when testing to force configuration every time we run
 
@@ -63,13 +69,48 @@ void setup() {
   Serial.print("Classroom Code: ");
   Serial.println(classroom_code_val);
 
-  // audio.connecttohost("http://vis.media-ice.musicradio.com/CapitalMP3");
+  audio.connecttospeech("WiFi Connected", "en");
+
   // audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
+  // audio.connecttohost("http://vis.media-ice.musicradio.com/CapitalMP3");
 }
 
 void loop() {
-  // audio.loop();
   webSocket.loop();
+  audio.loop();
+
+  if (playAudio) {
+    // audio.connecttohost(audioURL);
+    webSocket.disconnect();
+    audio.connecttohost("https://github.com/schreibfaul1/ESP32-audioI2S/raw/master/additional_info/Testfiles/Olsen-Banden.mp3");
+    // audio.connecttospeech("New announcement received", "en");
+    playAudio = false;
+  }
+
+  if (!digitalRead(BTN_CONFIG_RESET)) {
+    Serial.println("BTN_CONFIG_RESET pressed, resetting WiFi credentials");
+    // wm.resetSettings();  // reset settings - wipe stored credentials for testing
+    // ESP.restart();       // restart eps32
+  }
+}
+
+void handleIncomingData(uint8_t *json) {
+  DynamicJsonDocument doc(500);
+  DeserializationError error = deserializeJson(doc, json);
+
+  if (error) {
+    Serial.print("deserializeJson() failed: ");
+    Serial.println(error.f_str());
+    return;
+  }
+
+  String command = doc["command"];
+  Serial.println(command);
+
+  if (command == "anncmnt") {
+    playAudio = true;
+    // audioURL = doc["audioUrl"];
+  }
 }
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
@@ -82,12 +123,12 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
 
       // send message to server when Connected
       webSocket.sendTXT("{ \"command\":\"connected\", \"classroom_code\": \"" + String(classroom_code_val) + "\" }");
+      audio.connecttospeech("Connected CampusCast server", "en");
       break;
     case WStype_TEXT:
       Serial.printf("[WSc] get text: %s\n", payload);
 
-      // send message to server
-      // webSocket.sendTXT("message here");
+      handleIncomingData(payload);
       break;
     case WStype_BIN:
       Serial.printf("[WSc] get binary length: %u\n", length);
@@ -138,7 +179,7 @@ bool loadConfigFile() {
   Serial.println("Mounting File System...");
 
   // May need to make it begin(true) first time you are using SPIFFS
-  if (SPIFFS.begin()) {
+  if (SPIFFS.begin(true)) {
     Serial.println("mounted file system");
     if (SPIFFS.exists(JSON_CONFIG_FILE)) {
       // The file exists, reading and loading
