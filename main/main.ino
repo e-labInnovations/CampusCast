@@ -25,7 +25,7 @@ char ws_server_val[21] = "192.168.x.x";
 int ws_server_port_val = 1880;
 char ws_server_path_val[41] = "/";
 
-char* audioURL;
+String audioURL = "";
 bool playAudio = false;
 
 void setup() {
@@ -58,7 +58,7 @@ void setup() {
   // ping server every 15000 ms
   // expect pong from server within 3000 ms
   // consider connection disconnected if pong is not received 2 times
-  webSocket.enableHeartbeat(15000, 3000, 2);
+  // webSocket.enableHeartbeat(15000, 3000, 2);
 
   Serial.print("WS server: ");
   Serial.println(ws_server_val);
@@ -69,7 +69,7 @@ void setup() {
   Serial.print("Classroom Code: ");
   Serial.println(classroom_code_val);
 
-  audio.connecttospeech("WiFi Connected", "en");
+  // audio.connecttospeech("WiFi Connected", "en");
 
   // audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
   // audio.connecttohost("http://vis.media-ice.musicradio.com/CapitalMP3");
@@ -80,9 +80,11 @@ void loop() {
   audio.loop();
 
   if (playAudio) {
-    // audio.connecttohost(audioURL);
+    Serial.print("audioUrl: ");
+    Serial.println(audioURL);
     webSocket.disconnect();
-    audio.connecttohost("https://github.com/schreibfaul1/ESP32-audioI2S/raw/master/additional_info/Testfiles/Olsen-Banden.mp3");
+    audio.connecttohost(audioURL.c_str());
+    // audio.connecttohost("https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/recording-test01.m4a?alt=media&token=2e25980f-1d7c-4675-9a52-67a0c65170fb");
     // audio.connecttospeech("New announcement received", "en");
     playAudio = false;
   }
@@ -95,8 +97,8 @@ void loop() {
 }
 
 void handleIncomingData(uint8_t *json) {
-  DynamicJsonDocument doc(500);
-  DeserializationError error = deserializeJson(doc, json);
+  DynamicJsonDocument recvData(500);
+  DeserializationError error = deserializeJson(recvData, json);
 
   if (error) {
     Serial.print("deserializeJson() failed: ");
@@ -104,12 +106,13 @@ void handleIncomingData(uint8_t *json) {
     return;
   }
 
-  String command = doc["command"];
+  String command = recvData["command"];
   Serial.println(command);
 
   if (command == "anncmnt") {
+    const char* _audioURL = recvData["audioUrl"];
+    audioURL = String(_audioURL);
     playAudio = true;
-    // audioURL = doc["audioUrl"];
   }
 }
 
@@ -123,24 +126,12 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
 
       // send message to server when Connected
       webSocket.sendTXT("{ \"command\":\"connected\", \"classroom_code\": \"" + String(classroom_code_val) + "\" }");
-      audio.connecttospeech("Connected CampusCast server", "en");
+      // audio.connecttospeech("Connected CampusCast server", "en");
       break;
     case WStype_TEXT:
       Serial.printf("[WSc] get text: %s\n", payload);
 
       handleIncomingData(payload);
-      break;
-    case WStype_BIN:
-      Serial.printf("[WSc] get binary length: %u\n", length);
-
-      // send data to server
-      // webSocket.sendBIN(payload, length);
-      break;
-    case WStype_ERROR:
-    case WStype_FRAGMENT_TEXT_START:
-    case WStype_FRAGMENT_BIN_START:
-    case WStype_FRAGMENT:
-    case WStype_FRAGMENT_FIN:
       break;
   }
 }
