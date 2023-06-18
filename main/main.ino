@@ -15,6 +15,8 @@
 #define I2S_LRC 25
 #define BTN_CONFIG_RESET 0
 #define BTN_ACK 34
+#define RED_LED 19
+#define GREEN_LED 18
 
 Audio audio;
 WiFiManager wm;
@@ -31,6 +33,23 @@ String audioURL = "";
 String anncmntId = "";
 bool prevAckStatus = true;
 
+enum IndicatorStatus {
+  START_MODE,
+  CONFIG_MODE,
+  WIFI_NOT_CONN,
+  WIFI_CONN_SRV_NOT_CONN,
+  WIFI_SRV_OK
+};
+
+struct Indicator {
+  int redLedOldStatus;
+  int greenLedOldStatus;
+  IndicatorStatus currentStatus;
+  unsigned long previousMillis;
+};
+Indicator indicator;  // Declare an instance of the Indicator structure
+
+
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
@@ -40,6 +59,16 @@ void setup() {
 
   pinMode(BTN_CONFIG_RESET, INPUT);
   pinMode(BTN_ACK, INPUT);
+
+  pinMode(RED_LED, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+
+  // Initialize the Indicator structure
+  indicator.redLedOldStatus = LOW;
+  indicator.greenLedOldStatus = LOW;
+  indicator.currentStatus = START_MODE;
+  indicator.previousMillis = 0;
+  setIndicatorStatus(START_MODE);
 
   bool forceConfig = false;  // Change to true when testing to force configuration every time we run
 
@@ -92,16 +121,16 @@ void loop() {
 
   if (!digitalRead(BTN_CONFIG_RESET)) {
     Serial.println("BTN_CONFIG_RESET pressed, resetting WiFi credentials");
-    // wm.resetSettings();  // reset settings - wipe stored credentials for testing
-    // ESP.restart();       // restart eps32
+    wm.resetSettings();  // reset settings - wipe stored credentials for testing
+    ESP.restart();       // restart eps32
   }
 
   bool presAckStatus = digitalRead(BTN_ACK);
   if (prevAckStatus && !presAckStatus) {
     Serial.println("BTN_ACK pressed");
 
-    if(anncmntId != "") {
-      webSocket.sendTXT("{ \"command\":\"ack\", \"classroom_code\": \"" + String(classroom_code_val) + "\", \"msg_id\":\""+ anncmntId  +"\" }");
+    if (anncmntId != "") {
+      webSocket.sendTXT("{ \"command\":\"ack\", \"classroom_code\": \"" + String(classroom_code_val) + "\", \"msg_id\":\"" + anncmntId + "\" }");
       anncmntId = "";
     }
     delay(10);
@@ -123,11 +152,14 @@ void handleIncomingData(uint8_t *json) {
   Serial.println(command);
 
   if (command == "anncmnt") {
-    const char *_audioURL = recvData["audioUrl"];
-    const char *_anncmntId = recvData["id"];
-    audioURL = String(_audioURL);
-    anncmntId = String(_anncmntId);
-    playAudio = true;
+    String recipient = recvData["recipient"];
+    if (recipient == String(classroom_code_val)) {
+      const char *_audioURL = recvData["audioUrl"];
+      const char *_anncmntId = recvData["id"];
+      audioURL = String(_audioURL);
+      anncmntId = String(_anncmntId);
+      playAudio = true;
+    }
   }
 }
 
@@ -224,6 +256,7 @@ void saveConfigCallback() {
 
 // Called when config mode launched
 void configModeCallback(WiFiManager *myWiFiManager) {
+  setIndicatorStatus(CONFIG_MODE);
   Serial.println("Entered Configuration Mode");
 
   Serial.print("Config SSID: ");
@@ -261,13 +294,9 @@ void setupWiFiManager() {
   if (!res) {
     Serial.println("Failed to connect");
     ESP.restart();
-  } else {
-    //if you get here you have connected to the WiFi
-    Serial.println("connected...yeey :)");
-    // pcf8574.digitalWrite(LED_WiFi_OK, LOW); //Turning ON
-    // pcf8574.digitalWrite(LED_WiFi_ERROR, HIGH); //Turning OFF
   }
 
+  setIndicatorStatus(WIFI_CONN_SRV_NOT_CONN);
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.print("IP address: ");
@@ -290,6 +319,33 @@ void setupWiFiManager() {
   // Save the custom parameters to FS
   if (shouldSaveConfig) {
     saveConfigFile();
+  }
+}
+
+void setIndicatorStatus(IndicatorStatus status) {
+  switch (status) {
+    case START_MODE:
+      digitalWrite(RED_LED, LOW);
+      digitalWrite(GREEN_LED, LOW);
+      break;
+    case CONFIG_MODE:
+      // Set RED LED ON
+      digitalWrite(RED_LED, HIGH);
+      digitalWrite(GREEN_LED, LOW);
+      break;
+    case WIFI_NOT_CONN:
+      // Set RED LED BLINKING
+      // ...
+      break;
+    case WIFI_CONN_SRV_NOT_CONN:
+      // Set RED & GREEN LED ALTERNATE BLINKING
+      // ...
+      break;
+    case WIFI_SRV_OK:
+      // Set GREEN LED ON
+      digitalWrite(RED_LED, LOW);
+      digitalWrite(GREEN_LED, HIGH);
+      break;
   }
 }
 
