@@ -32,7 +32,6 @@ bool playAudio = false;
 String audioURL = "";
 String anncmntId = "";
 bool prevAckStatus = true;
-
 String introURL = "";
 String outroURL = "";
 int audioStatus = 0;
@@ -52,7 +51,7 @@ struct Indicator {
   IndicatorStatus currentStatus;
   unsigned long previousMillis;
 };
-Indicator indicator;  // Declare an instance of the Indicator structure
+Indicator indicator;
 
 
 void setup() {
@@ -83,6 +82,8 @@ void setup() {
     forceConfig = true;
   }
 
+  setIndicatorStatus(WIFI_NOT_CONN);
+
   WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
   setupWiFiManager();
 
@@ -111,6 +112,17 @@ void setup() {
 void loop() {
   webSocket.loop();
   audio.loop();
+
+  // Update indicator LED
+  if (WiFi.status() == WL_CONNECTED) {
+    if (webSocket.isConnected()) {
+      setIndicatorStatus(WIFI_SRV_OK);
+    } else {
+      setIndicatorStatus(WIFI_CONN_SRV_NOT_CONN);
+    }
+  } else {
+    setIndicatorStatus(WIFI_NOT_CONN);
+  }
 
   if (playAudio) {
     Serial.print("audioUrl: ");
@@ -342,33 +354,58 @@ void setupWiFiManager() {
 }
 
 void setIndicatorStatus(IndicatorStatus status) {
+  unsigned long currentMillis = millis();
   switch (status) {
     case START_MODE:
-      digitalWrite(RED_LED, LOW);
-      digitalWrite(GREEN_LED, LOW);
+      indicator.redLedOldStatus = LOW;
+      indicator.greenLedOldStatus = LOW;
+      digitalWrite(RED_LED, indicator.redLedOldStatus);
+      digitalWrite(GREEN_LED, indicator.greenLedOldStatus);
       break;
+
     case CONFIG_MODE:
       // Set RED LED ON
-      digitalWrite(RED_LED, HIGH);
-      digitalWrite(GREEN_LED, LOW);
+      indicator.redLedOldStatus = HIGH;
+      indicator.greenLedOldStatus = LOW;
+      digitalWrite(RED_LED, indicator.redLedOldStatus);
+      digitalWrite(GREEN_LED, indicator.greenLedOldStatus);
       break;
+
     case WIFI_NOT_CONN:
       // Set RED LED BLINKING
-      // ...
+      if (currentMillis - indicator.previousMillis >= 500) {
+        indicator.previousMillis = currentMillis;
+
+        indicator.redLedOldStatus = !indicator.redLedOldStatus;
+        indicator.greenLedOldStatus = LOW;
+        digitalWrite(RED_LED, indicator.redLedOldStatus);
+        digitalWrite(GREEN_LED, indicator.greenLedOldStatus);
+      }
       break;
+
     case WIFI_CONN_SRV_NOT_CONN:
-      // Set RED & GREEN LED ALTERNATE BLINKING
-      // ...
+      // Alternately turn on and off red and green LEDs
+      if (currentMillis - indicator.previousMillis >= 500) {
+        indicator.previousMillis = currentMillis;
+
+        indicator.redLedOldStatus = !indicator.redLedOldStatus;
+        indicator.greenLedOldStatus = !indicator.redLedOldStatus;
+        digitalWrite(RED_LED, indicator.redLedOldStatus);
+        digitalWrite(GREEN_LED, indicator.greenLedOldStatus);
+      }
       break;
+
     case WIFI_SRV_OK:
       // Set GREEN LED ON
-      digitalWrite(RED_LED, LOW);
-      digitalWrite(GREEN_LED, HIGH);
+      indicator.redLedOldStatus = LOW;
+      indicator.greenLedOldStatus = HIGH;
+      digitalWrite(RED_LED, indicator.redLedOldStatus);
+      digitalWrite(GREEN_LED, indicator.greenLedOldStatus);
       break;
   }
 }
 
-// optional
+//
 void audio_info(const char *info) {
   Serial.print("info        ");
   Serial.println(info);
@@ -386,8 +423,4 @@ void audio_info(const char *info) {
       }
     }
   }
-}
-void audio_eof_mp3(const char *info) {  //end of file
-  Serial.print("eof_mp3     ");
-  Serial.println(info);
 }
