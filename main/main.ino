@@ -1,5 +1,5 @@
-#include <FS.h>           // this needs to be first, or it all crashes and burns...
-#include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
+#include <FS.h>  // this needs to be first, or it all crashes and burns...
+#include "./src/WiFiManager/WiFiManager.h"
 #include <ArduinoJson.h>  // https://github.com/bblanchon/ArduinoJson
 #include <SPIFFS.h>
 #include <WebSocketsClient.h>  //version 2.3.6
@@ -163,7 +163,7 @@ void handleIncomingData(uint8_t *json) {
       audioURL = String(_audioURL);
       anncmntId = String(_anncmntId);
       playAudio = true;
-      audioType = "anncmnt" ;
+      audioType = "anncmnt";
       webSocket.sendTXT("{ \"command\":\"ack_received\", \"classroom_code\": \"" + String(classroom_code_val) + "\", \"msg_id\":\"" + anncmntId + "\" }");
     }
   } else if (command == "examschedule") {
