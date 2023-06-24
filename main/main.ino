@@ -33,6 +33,11 @@ String audioURL = "";
 String anncmntId = "";
 bool prevAckStatus = true;
 
+String introURL = "https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/intro.mp3?alt=media&token=756fe61f-8d57-453b-be03-23db5cbedf18";
+String outerURL = "https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/outro.mp3?alt=media&token=75b04d5d-ecdf-4eea-9d87-a7aae01ebc4e";
+int audioStatus = 0;
+String audioType = "";
+
 enum IndicatorStatus {
   START_MODE,
   CONFIG_MODE,
@@ -115,8 +120,9 @@ void loop() {
     Serial.print("Id: ");
     Serial.println(anncmntId);
     webSocket.disconnect();
-    audio.connecttohost(audioURL.c_str());
+    audio.connecttohost(introURL.c_str());
     playAudio = false;
+    audioStatus = 0;
   }
 
   if (!digitalRead(BTN_CONFIG_RESET)) {
@@ -159,6 +165,16 @@ void handleIncomingData(uint8_t *json) {
       audioURL = String(_audioURL);
       anncmntId = String(_anncmntId);
       playAudio = true;
+      audioType = "anncmnt" ;
+      webSocket.sendTXT("{ \"command\":\"ack_received\", \"classroom_code\": \"" + String(classroom_code_val) + "\", \"msg_id\":\"" + anncmntId + "\" }");
+    }
+  } else if (command == "examschedule") {
+    String recipient = recvData["recipient"];
+    if (recipient == String(classroom_code_val)) {
+      const char *_audioURL = recvData["audioUrl"];
+      audioURL = "http:/192.168.29.70:1880/examschedule?id=" + String(_audioURL);
+      playAudio = true;
+      audioType = "notification";
     }
   }
 }
@@ -353,40 +369,22 @@ void setIndicatorStatus(IndicatorStatus status) {
 void audio_info(const char *info) {
   Serial.print("info        ");
   Serial.println(info);
-}
-void audio_id3data(const char *info) {  //id3 metadata
-  Serial.print("id3data     ");
-  Serial.println(info);
+  if (strstr(info, "End of webstream") != NULL) {
+    Serial.println("announcement completed");
+    if (audioStatus == 0 || audioStatus == 1) {
+      audio.connecttohost(audioURL.c_str());
+      audioStatus++;
+    } else if (audioStatus == 2) {
+      if (audioType == "notification") {
+        audioStatus += 1;
+      } else {
+        audio.connecttohost(outerURL.c_str());
+        audioStatus += 1;
+      }
+    }
+  }
 }
 void audio_eof_mp3(const char *info) {  //end of file
   Serial.print("eof_mp3     ");
-  Serial.println(info);
-}
-void audio_showstation(const char *info) {
-  Serial.print("station     ");
-  Serial.println(info);
-}
-void audio_showstreamtitle(const char *info) {
-  Serial.print("streamtitle ");
-  Serial.println(info);
-}
-void audio_bitrate(const char *info) {
-  Serial.print("bitrate     ");
-  Serial.println(info);
-}
-void audio_commercial(const char *info) {  //duration in sec
-  Serial.print("commercial  ");
-  Serial.println(info);
-}
-void audio_icyurl(const char *info) {  //homepage
-  Serial.print("icyurl      ");
-  Serial.println(info);
-}
-void audio_lasthost(const char *info) {  //stream URL played
-  Serial.print("lasthost    ");
-  Serial.println(info);
-}
-void audio_eof_speech(const char *info) {
-  Serial.print("eof_speech  ");
   Serial.println(info);
 }
