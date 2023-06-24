@@ -33,8 +33,8 @@ String audioURL = "";
 String anncmntId = "";
 bool prevAckStatus = true;
 
-String introURL = "https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/intro.mp3?alt=media&token=756fe61f-8d57-453b-be03-23db5cbedf18";
-String outerURL = "https://firebasestorage.googleapis.com/v0/b/campuscast-elabins.appspot.com/o/outro.mp3?alt=media&token=75b04d5d-ecdf-4eea-9d87-a7aae01ebc4e";
+String introURL = "";
+String outroURL = "";
 int audioStatus = 0;
 String audioType = "";
 
@@ -106,8 +106,6 @@ void setup() {
   Serial.println(ws_server_path_val);
   Serial.print("Classroom Code: ");
   Serial.println(classroom_code_val);
-
-  // audio.connecttospeech("WiFi Connected", "en");
 }
 
 void loop() {
@@ -172,10 +170,15 @@ void handleIncomingData(uint8_t *json) {
     String recipient = recvData["recipient"];
     if (recipient == String(classroom_code_val)) {
       const char *_audioURL = recvData["audioUrl"];
-      audioURL = "http:/192.168.29.70:1880/examschedule?id=" + String(_audioURL);
+      audioURL = String(ws_server_val) + ":" + String(ws_server_port_val) + "/examschedule?id=" + String(_audioURL);
       playAudio = true;
       audioType = "notification";
     }
+  } else if (command == "connected_ack") {
+    const char *_introURL = recvData["introURL"];
+    const char *_outroURL = recvData["outroURL"];
+    introURL = String(_introURL);
+    outroURL = String(_outroURL);
   }
 }
 
@@ -378,7 +381,7 @@ void audio_info(const char *info) {
       if (audioType == "notification") {
         audioStatus += 1;
       } else {
-        audio.connecttohost(outerURL.c_str());
+        audio.connecttohost(outroURL.c_str());
         audioStatus += 1;
       }
     }
