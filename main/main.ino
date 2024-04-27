@@ -1,10 +1,27 @@
 #include <FS.h>  // this needs to be first, or it all crashes and burns...
-#include "./src/WiFiManager/WiFiManager.h"
-#include <ArduinoJson.h>  // https://github.com/bblanchon/ArduinoJson
 #include <SPIFFS.h>
+#include "./src/WiFiManager/WiFiManager.h"
+#include <ArduinoJson.h>       // https://github.com/bblanchon/ArduinoJson
 #include <WebSocketsClient.h>  //version 2.3.6
 #include "WiFi.h"
 #include "Audio.h"
+/*
+ESP32 Board             => 2.0.13
+FS                      => 2.0.0  
+SPIFFS                  => 2.0.0
+WiFi                    => 2.0.0
+Update                  => 2.0.0
+WebServer               => 2.0.0
+DNSServer               => 2.0.0
+ArduinoJson             => 6.20.1 
+WebSockets              => 2.3.6
+WiFiClientSecure        => 2.0.0
+ESP32-audioI2S-master   => 2.0.0
+SPI                     => 2.0.0
+SD                      => 2.0.0
+SD_MMC                  => 2.0.0
+FFat                    => 2.0.0
+*/
 
 #define SSID_PREFIX "CampusCast_"
 #define PASSWORD "password"
@@ -167,7 +184,12 @@ void handleIncomingData(uint8_t *json) {
   String command = recvData["command"];
   Serial.println(command);
 
-  if (command == "anncmnt") {
+  if (command == "connected_ack") {
+    const char *_introURL = recvData["introURL"];
+    const char *_outroURL = recvData["outroURL"];
+    introURL = String(_introURL);
+    outroURL = String(_outroURL);
+  } else if (command == "anncmnt") {
     String recipient = recvData["recipient"];
     if (recipient == String(classroom_code_val)) {
       const char *_audioURL = recvData["audioUrl"];
@@ -186,11 +208,6 @@ void handleIncomingData(uint8_t *json) {
       playAudio = true;
       audioType = "notification";
     }
-  } else if (command == "connected_ack") {
-    const char *_introURL = recvData["introURL"];
-    const char *_outroURL = recvData["outroURL"];
-    introURL = String(_introURL);
-    outroURL = String(_outroURL);
   }
 }
 
